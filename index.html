@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EzMutate</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="controls" aria-label="Inputs">
+      <div class="brand-row">
+        <div class="helix-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <h1>EzMutate</h1>
+          <p class="subtle">ORF, translation, mutation codons</p>
+        </div>
+      </div>
+
+      <form id="designerForm">
+        <section class="control-section">
+          <div class="section-title">
+            <h2>DNA</h2>
+            <button type="button" class="ghost-button" id="loadDemoButton">Load demo</button>
+          </div>
+          <label for="dnaInput">Coding DNA sequence</label>
+          <textarea id="dnaInput" spellcheck="false" placeholder=">sequence_name&#10;ATGGCC...TAA"></textarea>
+          <div class="input-preview" aria-live="polite">
+            <div class="input-preview-head">
+              <span>DNA / AA</span>
+              <span id="inputPreviewMeta">0 codons</span>
+            </div>
+            <div class="input-preview-target">
+              <label for="targetAaInput">Target AA #</label>
+              <input type="number" id="targetAaInput" min="1" placeholder="82">
+              <label for="desiredAaInput">Desired AA</label>
+              <input type="text" id="desiredAaInput" maxlength="1" placeholder="F" spellcheck="false">
+              <button type="button" class="ghost-button small" id="targetAaButton">Go</button>
+              <span id="targetAaStatus" class="target-status"></span>
+            </div>
+            <div id="inputPreview" class="input-preview-body">
+              <div class="empty-mini">Sequence preview appears here.</div>
+            </div>
+          </div>
+          <div class="inline-options">
+            <label class="check-row">
+              <input type="checkbox" id="requireStart" checked>
+              <span>ATG start</span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" id="requireStop" checked>
+              <span>terminal stop</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <div class="section-title">
+            <h2>Codon usage</h2>
+          </div>
+          <input type="hidden" id="mutationInput">
+
+          <label for="hostSelect">Host codon usage</label>
+          <select id="hostSelect">
+            <option value="ecoli">E. coli K-12</option>
+            <option value="yeast">S. cerevisiae</option>
+            <option value="human">H. sapiens</option>
+          </select>
+        </section>
+
+        <div class="action-row">
+          <button type="submit" class="primary-button">Analyze codons</button>
+          <button type="button" class="ghost-button" id="clearButton">Clear</button>
+        </div>
+      </form>
+    </aside>
+
+    <main class="results" aria-label="Results">
+      <header class="result-header">
+        <div>
+          <p class="eyebrow">Workbench</p>
+          <h2>Sequence analysis</h2>
+        </div>
+        <div class="status-pill" id="overallStatus">Waiting for sequence</div>
+      </header>
+
+      <section class="metrics-grid" aria-label="Sequence metrics">
+        <div class="metric">
+          <span>DNA length</span>
+          <strong id="metricDna">0 nt</strong>
+        </div>
+        <div class="metric">
+          <span>Protein length</span>
+          <strong id="metricProtein">0 aa</strong>
+        </div>
+        <div class="metric">
+          <span>GC</span>
+          <strong id="metricGc">0%</strong>
+        </div>
+        <div class="metric">
+          <span>Target</span>
+          <strong id="metricMutations">none</strong>
+        </div>
+      </section>
+
+      <section id="alertPanel" class="alert-panel" aria-live="polite"></section>
+
+      <nav class="tabs" aria-label="Result views">
+        <button type="button" class="tab-button active" data-tab="overview">Overview</button>
+        <button type="button" class="tab-button" data-tab="primers">Codon usage</button>
+        <button type="button" class="tab-button" data-tab="export">Export</button>
+      </nav>
+
+      <section id="overview" class="tab-panel active">
+        <div class="panel-header">
+          <h3>Protein sequence</h3>
+          <button type="button" class="ghost-button small" id="copyProteinButton">Copy</button>
+        </div>
+        <pre id="proteinOutput" class="sequence-box">Paste a coding DNA sequence to begin.</pre>
+
+        <div class="panel-header split-header">
+          <h3>Mutation target</h3>
+          <span id="mutationCheckCount" class="subtle"></span>
+        </div>
+        <div id="mutationChecks" class="check-list"></div>
+      </section>
+
+      <section id="primers" class="tab-panel">
+        <div class="panel-header">
+          <h3>Desired amino-acid codons</h3>
+          <button type="button" class="ghost-button small" id="copyPrimersButton">Copy table</button>
+        </div>
+        <div id="primerTableWrap" class="table-wrap"></div>
+      </section>
+
+      <section id="export" class="tab-panel">
+        <div class="export-grid">
+          <div>
+            <div class="panel-header">
+              <h3>CSV</h3>
+              <button type="button" class="ghost-button small" id="copyCsvButton">Copy</button>
+            </div>
+            <textarea id="csvOutput" class="export-box" readonly></textarea>
+          </div>
+          <div>
+            <div class="panel-header">
+              <h3>FASTA</h3>
+              <button type="button" class="ghost-button small" id="copyFastaButton">Copy</button>
+            </div>
+            <textarea id="fastaOutput" class="export-box" readonly></textarea>
+          </div>
+        </div>
+      </section>
+
+      <footer class="source-row">
+        <span>Standard code: translation table 1.</span>
+        <a href="https://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi#SG1" target="_blank" rel="noreferrer">NCBI genetic code</a>
+        <span>Relative usage is calculated among synonymous codons; source frequencies are per 1000 codons.</span>
+        <a href="https://www.kazusa.or.jp/codon/" target="_blank" rel="noreferrer">Codon Usage Database</a>
+      </footer>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
